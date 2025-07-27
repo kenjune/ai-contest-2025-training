@@ -1,0 +1,20 @@
+services:
+  dev1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: signate/runtime-gpu:axell2025_env
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    container_name: axell_2025
+    ports:
+      - "8080:8080"
+    volumes:
+      - .:/workspace
+    working_dir: /workspace
+    tty: true

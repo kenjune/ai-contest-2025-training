@@ -1,0 +1,4 @@
+ultralytics==8.3.156
+--extra-index-url https://download.pytorch.org/whl/cu126
+torch==2.6.0
+torchvision==0.21.0

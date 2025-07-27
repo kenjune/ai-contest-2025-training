@@ -28,19 +28,27 @@
 
 ## 快速开始
 
-### 1. 安装依赖
+### 1. 下载数据集
+
+```bash
+python download_dataset.py
+```
+
+或手动下载数据集到 `dataset/` 目录下。详细说明请参考 [DATASET.md](./DATASET.md)。
+
+### 2. 安装依赖
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 2. 准备数据集
+### 3. 准备数据集
 
 ```bash
 python prepare_dataset.py
 ```
 
-### 3. 开始训练
+### 4. 开始训练
 
 #### 方式1: Python脚本
 ```bash
