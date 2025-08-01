@@ -1,5 +1,4 @@
-# File: scripts/step_02_prepare_yolo_dataset.py
-# File: scripts/step_02_prepare_yolo_dataset.py
+# File: scripts/step_02_prepare_yolo_dataset.py (已修复版本)
 
 import json
 import os
@@ -17,6 +16,18 @@ def _split_annotations():
     print("--> 1. 正在分割标注文件...")
     with open(settings.CLEANED_ANNOTATION_FILE, 'r') as f:
         coco_data = json.load(f)
+
+    # --- 核心修复代码：在这里过滤无效标注 ---
+    original_annotations_count = len(coco_data['annotations'])
+    # 只保留那些存在'bbox'键，并且'bbox'值不为空列表的标注
+    valid_annotations = [ann for ann in coco_data['annotations'] if 'bbox' in ann and ann['bbox']]
+    
+    if original_annotations_count != len(valid_annotations):
+        print(f"    检测到并移除了 {original_annotations_count - len(valid_annotations)} 条无效标注。")
+    
+    coco_data['annotations'] = valid_annotations
+    print(f"    保留了 {len(valid_annotations)} 条有效标注进行后续处理。")
+    # --- 修复结束 ---
 
     images = coco_data['images']
     annotations = coco_data['annotations']
@@ -75,7 +86,7 @@ def _convert_to_yolo(categories):
     print("    正在转换 train/val/test 的标注...")
     convert_coco(labels_dir=settings.SPLIT_ANNOTATIONS_DIR, use_segments=False, save_dir=settings.YOLO_DATASET_DIR)
     
-    # 复制/链接图片
+    # 复制图片
     print("    正在复制图片到YOLO目录结构...")
     for split in ["train", "val", "test"]:
         json_path = os.path.join(settings.SPLIT_ANNOTATIONS_DIR, f"{split}.json")
@@ -104,7 +115,7 @@ def _convert_to_yolo(categories):
         f.write("# Classes\n")
         f.write("names:\n")
         for cat_id in sorted(dict_categories.keys()):
-            f.write(f"  {cat_id-1}: {dict_categories[cat_id]}\n") # YOLO从0开始
+            f.write(f"  {cat_id-1}: {dict_categories[cat_id]}\n")
 
 def prepare_yolo_data():
     """主函数：执行数据集分割和YOLO格式转换。"""
