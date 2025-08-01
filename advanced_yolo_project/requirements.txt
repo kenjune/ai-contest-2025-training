@@ -2,10 +2,12 @@ numpy
 pandas
 torch
 torchvision
-ultralytics
 wandb
 tqdm
 scipy
 Pillow
 opencv-python
 PyYAML
+
+
+git+https://github.com/ultralytics/ultralytics.git@main
