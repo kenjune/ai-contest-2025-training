@@ -9,16 +9,19 @@ import glob
 from tqdm import tqdm
 from ultralytics.data.converter import convert_coco
 
-# 修复导入路径 - 现在从同一目录的config导入
+# 修复导入路径 - 从config目录导入
 sys.path.append(os.path.dirname(__file__))
-from config.settings import TRAIN_SPLIT, LABELS, LOG_FILENAME, LOG_FORMAT, LOG_LEVEL
+from config.config import TRAIN_SPLIT, LABELS, LOG_FILENAME, LOG_FORMAT, LOG_LEVEL
 
-# 或者直接定义常量，避免复杂的导入
-# TRAIN_SPLIT = 0.8
-# LABELS = ['train', 'val', 'test']
-# LOG_FILENAME = 'prepare_dataset.log'
-# LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-# LOG_LEVEL = 'INFO'
+# 如果导入失败，使用直接定义的常量作为备用
+try:
+    from config.config import TRAIN_SPLIT, LABELS, LOG_FILENAME, LOG_FORMAT, LOG_LEVEL
+except ImportError:
+    TRAIN_SPLIT = 0.8
+    LABELS = ['train', 'val', 'test']
+    LOG_FILENAME = None  # 输出到控制台
+    LOG_FORMAT = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    LOG_LEVEL = 20  # INFO级别
 
 basicConfig(filename=LOG_FILENAME, format=LOG_FORMAT, level=LOG_LEVEL)
 logger = getLogger(__name__)
