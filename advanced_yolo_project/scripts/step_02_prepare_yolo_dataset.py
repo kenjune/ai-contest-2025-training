@@ -5,17 +5,67 @@ import os
 import random
 import shutil
 import sys
+import time
 from tqdm import tqdm
 
-# 导入prepare_dataset脚本
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-try:
-    from prepare_dataset import main as prepare_dataset_main
-except ImportError:
-    print("错误：无法从上一级目录找到 'prepare_dataset.py'。请确保该文件存在于项目根目录中。")
+# 🔧 修复导入路径问题 - 增强版调试
+def setup_prepare_dataset_import():
+    """设置并验证 prepare_dataset 的导入"""
+    current_dir = os.path.dirname(__file__)
+    project_root = os.path.abspath(os.path.join(current_dir, '..'))
+    
+    print(f"🔍 路径调试信息:")
+    print(f"   当前脚本: {__file__}")
+    print(f"   scripts目录: {current_dir}")
+    print(f"   项目根目录: {project_root}")
+    
+    # 检查项目根目录内容
+    if os.path.exists(project_root):
+        all_files = os.listdir(project_root)
+        py_files = [f for f in all_files if f.endswith('.py')]
+        print(f"   根目录所有文件: {all_files}")
+        print(f"   根目录Python文件: {py_files}")
+    else:
+        print(f"   ❌ 项目根目录不存在: {project_root}")
+        return None
+    
+    prepare_dataset_path = os.path.join(project_root, 'prepare_dataset.py')
+    print(f"   prepare_dataset.py路径: {prepare_dataset_path}")
+    print(f"   prepare_dataset.py存在: {'✅' if os.path.exists(prepare_dataset_path) else '❌'}")
+    
+    if not os.path.exists(prepare_dataset_path):
+        print(f"\n❌ 找不到 prepare_dataset.py")
+        print(f"   期望位置: {prepare_dataset_path}")
+        print(f"   请确保文件存在于正确位置")
+        return None
+    
+    # 添加到Python路径
+    if project_root not in sys.path:
+        sys.path.insert(0, project_root)
+        print(f"   ✅ 已添加到Python路径: {project_root}")
+    
+    try:
+        from prepare_dataset import main as prepare_dataset_main
+        print(f"   ✅ 成功导入 prepare_dataset.main")
+        return prepare_dataset_main
+    except ImportError as e:
+        print(f"   ❌ 导入失败: {e}")
+        return None
+    except Exception as e:
+        print(f"   ❌ 其他错误: {e}")
+        return None
+
+# 设置导入
+prepare_dataset_main = setup_prepare_dataset_import()
+if prepare_dataset_main is None:
+    print("\n💡 解决建议:")
+    print("1. 确保 prepare_dataset.py 在项目根目录")
+    print("2. 检查文件权限")
+    print("3. 验证文件内容完整性")
+    print("4. 如果在Kaggle，确保文件已上传")
     sys.exit(1)
 
-from config import settings
+from config import settings, log_controller
 
 # --- 调试功能函数 ---
 
