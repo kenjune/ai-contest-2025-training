@@ -9,7 +9,7 @@ import glob
 from tqdm import tqdm
 from ultralytics.data.converter import convert_coco
 
-from config import (
+from prepare_config import (
     TRAIN_SPLIT,
     LABELS,
     LOG_FILENAME,
