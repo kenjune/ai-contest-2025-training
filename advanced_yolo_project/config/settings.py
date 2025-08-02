@@ -14,16 +14,21 @@ RAW_DATA_DIR = '/kaggle/input/ai-contest-2025-training/dataset'
 RAW_IMAGES_DIR = os.path.join(RAW_DATA_DIR, 'images')
 RAW_ANNOTATIONS_DIR = os.path.join(RAW_DATA_DIR, 'annotations')
 
-# 存放所有处理后文件的本地路径
-PROCESSED_DATA_DIR = os.path.join(ROOT_DIR, 'data', 'processed')
+# 🔧 修正：存放所有处理后文件的本地路径 - 使用绝对路径确保一致性
+PROCESSED_DATA_DIR = '/kaggle/working/advanced_yolo_project/data/processed'
 
 # --- 中间文件和最终产物的本地路径 ---
 CLEANED_ANNOTATION_FILE = os.path.join(PROCESSED_DATA_DIR, 'annotations', 'train_clean.json')
 SPLIT_ANNOTATIONS_DIR = os.path.join(PROCESSED_DATA_DIR, 'annotations', 'splits')
-YOLO_DATASET_DIR = os.path.join(PROCESSED_DATA_DIR, 'yolo_dataset')
-BEST_PARAMS_FILE = os.path.join(ROOT_DIR, 'config', 'best_params.json') # 存放最优参数
-FINAL_MODEL_DIR = os.path.join(ROOT_DIR, 'models', 'final_model') # 存放最终训练好的模型
 
+# 🔧 关键：YOLO数据集输出路径 - 与prepare_dataset的dst_path匹配
+YOLO_DATASET_DIR = os.path.join(PROCESSED_DATA_DIR, 'yolo_dataset')
+
+# 🔧 新增：prepare_dataset的输入临时目录
+PREPARE_DATASET_INPUT_DIR = os.path.join(PROCESSED_DATA_DIR, 'prepare_input')
+
+BEST_PARAMS_FILE = os.path.join(ROOT_DIR, 'config', 'best_params.json')  # 存放最优参数
+FINAL_MODEL_DIR = os.path.join(ROOT_DIR, 'models', 'final_model')  # 存放最终训练好的模型
 
 # --- 数据去重配置 ---
 SIMILARITY_THRESHOLD = 0.95
@@ -34,7 +39,7 @@ VAL_RATIO = 0.1
 # 测试集比例将自动计算
 
 # --- W&B 超参数调优配置 ---
-WANDB_PROJECT_NAME = "YOLOv11-Tuning-Local-Project" # 你在W&B上的项目名称
+WANDB_PROJECT_NAME = "YOLOv11-Tuning-Local-Project"  # 你在W&B上的项目名称
 SWEEP_CONFIG = {
     'method': 'bayes',
     'metric': {'name': 'val_mAP50-95', 'goal': 'maximize'},
@@ -48,7 +53,7 @@ SWEEP_CONFIG = {
 }
 TUNING_EPOCHS = 25      # 每次调优试验训练的轮数
 TUNING_BATCH_SIZE = 8   # 调优时使用的批大小 (根据你的显存调整)
-TUNING_MODEL = 'yolov8x.pt' # 用于调优的模型
+TUNING_MODEL = 'yolo11x.pt'  # 用于调优的模型
 SWEEP_RUN_COUNT = 15    # 总共进行多少次调优试验
 
 # --- 最终模型训练配置 ---
