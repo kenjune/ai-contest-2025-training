@@ -163,14 +163,29 @@ def _is_valid_bbox(bbox):
     return True
 
 def _validate_and_split_annotations():
-    """读取、验证、清洗并随机分割清理后的COCO标注数据。"""
+    """读取、验证、清洗并随机分割COCO标注数据。"""
     print("--> 1. 正在验证、清洗和分割标注文件...")
     
-    # 🔧 添加调试：检查输入文件
-    print(f"🔍 读取清洗后的标注文件: {settings.CLEANED_ANNOTATION_FILE}")
-    print(f"文件存在: {'✅' if os.path.exists(settings.CLEANED_ANNOTATION_FILE) else '❌'}")
+    # 🔧 修复：优先使用清洗后的文件，如果不存在则使用原始文件
+    if os.path.exists(settings.CLEANED_ANNOTATION_FILE):
+        annotation_file = settings.CLEANED_ANNOTATION_FILE
+        print(f"🔍 使用清洗后的标注文件: {annotation_file}")
+    else:
+        # 使用原始标注文件
+        original_annotation_file = os.path.join(settings.RAW_ANNOTATIONS_DIR, 'train.json')
+        if os.path.exists(original_annotation_file):
+            annotation_file = original_annotation_file
+            print(f"🔍 使用原始标注文件: {annotation_file}")
+            print("⚠️ 未找到清洗后的标注文件，将直接使用原始文件")
+        else:
+            print(f"❌ 既没有清洗后的标注文件，也没有原始标注文件")
+            print(f"   清洗后文件: {settings.CLEANED_ANNOTATION_FILE}")
+            print(f"   原始文件: {original_annotation_file}")
+            raise FileNotFoundError("无法找到标注文件，请确保运行了 step_01 或原始标注文件存在")
     
-    with open(settings.CLEANED_ANNOTATION_FILE, 'r') as f:
+    print(f"文件存在: {'✅' if os.path.exists(annotation_file) else '❌'}")
+    
+    with open(annotation_file, 'r') as f:
         coco_data = json.load(f)
 
     print(f"原始数据统计:")
