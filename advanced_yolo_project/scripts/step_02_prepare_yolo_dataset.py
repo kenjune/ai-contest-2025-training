@@ -11,7 +11,7 @@ from ultralytics.data.converter import convert_coco
 
 # This assumes your configuration file is named 'config.py'.
 # If you have named it 'prepare_config.py', change the import statement below.
-from config import (
+from prepare_config import (
     TRAIN_SPLIT,
     LABELS,
     LOG_FILENAME,
