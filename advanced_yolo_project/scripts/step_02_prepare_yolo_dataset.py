@@ -82,6 +82,9 @@ def _validate_and_split_annotations():
         with open(path, 'w') as f:
             json.dump(subset_data, f)
         print(f"    - 已生成 {name}.json")
+    
+    # 🔧 添加：返回 categories
+    return coco_data['categories']
 
 
 # --- 2. 调用外部脚本进行转换的函数 (优化了你的逻辑) ---
@@ -219,8 +222,8 @@ def prepare_yolo_data():
     print("\n--- 第2步: 准备YOLO格式数据集 ---")
     
     try:
-        # 第一步：分割标注文件（保持原有逻辑）
-        categories = _split_annotations()
+        # 🔧 修复：使用正确的函数名
+        categories = _validate_and_split_annotations()  # 不是 _split_annotations()
         
         # 第二步：调用外部转换器
         _run_external_converter()
