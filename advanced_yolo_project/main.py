@@ -9,7 +9,7 @@ from scripts.step_05_evaluate import evaluate_model
 def run_pipeline():
     """按顺序执行从数据处理到模型评估的整个流程。"""
     # 第1步: 清洗数据集，移除相似图片，并清理内存
-    find_and_remove_duplicates()
+    #find_and_remove_duplicates()
 
     # 第2步: 分割并转换数据集为YOLO格式
     prepare_yolo_data()
