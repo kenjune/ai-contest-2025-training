@@ -1,3 +1,5 @@
+# File: prepare_dataset.py (Modified Version)
+
 from argparse import ArgumentParser
 import json
 from logging import getLogger, basicConfig
@@ -9,7 +11,9 @@ import glob
 from tqdm import tqdm
 from ultralytics.data.converter import convert_coco
 
-from prepare_config import (
+# Assuming your config file is named 'config.py' as in the notebook.
+# If it's truly 'prepare_config.py', you can change this back.
+from config import (
     TRAIN_SPLIT,
     LABELS,
     LOG_FILENAME,
@@ -43,21 +47,18 @@ def copy_images(
     dst_images_path: str
 ):
     """
-    Creates symbolic links of a list of images from a source directory
-    into a destination directory.
+    Copies a list of images from a source directory into a destination directory.
+    This version uses file copying instead of symbolic links to ensure the dataset
+    is self-contained and to avoid issues with temporary source directories.
     """
-    for filename in tqdm(image_filenames):
+    for filename in tqdm(image_filenames, desc=f"Copying images to {os.path.basename(dst_images_path)}"):
         src_file = os.path.abspath(os.path.join(src_images_path, filename))
         dst_file = os.path.abspath(os.path.join(dst_images_path, filename))
 
-        if os.path.isfile(src_file):  
-            # Only copy files, ignore directories.
-            if sys.platform == "win32":
-                # Windows does not support symlink
-                copy(src_file, dst_file)
-            else:
-                # Create symbolic link to reduce disk memory usage.
-                os.symlink(src_file, dst_file)
+        if os.path.isfile(src_file):
+            # Always copy the file to prevent broken symbolic links.
+            # This is more robust for environments like Kaggle.
+            copy(src_file, dst_file)
 
 
 def prepare_annotations(src_annotations_path: str, dst_path: str):
@@ -66,6 +67,7 @@ def prepare_annotations(src_annotations_path: str, dst_path: str):
     convert_coco(
         labels_dir=src_annotations_path,
         save_dir=dst_path,
+        use_segments=False, # Assuming object detection, not segmentation
         cls91to80=False
     )
     logger.info(f"Annotations saved to {os.path.join(dst_path, 'labels')}")
@@ -91,7 +93,7 @@ def prepare_images(
 
         # Skip non-existant labels
         if not os.path.exists(src_annotations_path_with_label):
-            logger.warning(f"No {label} data found.")
+            logger.warning(f"No annotation file for '{label}' split found. Skipping.")
             continue
 
         logger.info(f"Processing '{label}' images...")
@@ -104,8 +106,8 @@ def prepare_images(
 
         copy_images(image_filenames, src_images_path, dst_images_path)
 
-        # Get detection categories
-        if len(categories) == 0:
+        # Get detection categories (usually the same across all jsons)
+        if not categories:
             categories = json_data.get("categories", [])
 
     logger.info(f"Images saved to {os.path.join(dst_path, 'images')}")
@@ -113,9 +115,10 @@ def prepare_images(
 
 
 def prepare_configuration_file(categories: list[dict], dst_path: str):
-    """Creates Ultralytics' configuration file."""
-    # COCO IDs start from 1 but Ultralytics' start from 0.
-    dict_categories = {cat["id"] - 1: cat["name"] for cat in categories}
+    """Creates Ultralytics' configuration file (data.yaml)."""
+    # COCO IDs can be non-sequential, so map them carefully.
+    # Ultralytics' format requires a zero-indexed, sequential mapping.
+    category_names = [c['name'] for c in sorted(categories, key=lambda x: x['id'])]
 
     # Create YAML configuration file.
     yaml_file_path = os.path.join(dst_path, "data.yaml")
@@ -127,31 +130,53 @@ def prepare_configuration_file(categories: list[dict], dst_path: str):
 
         f.write("# Classes\n")
         f.write("names:\n")
-        for cat_id in sorted(dict_categories.keys()):
-            f.write(f"    {cat_id}: {dict_categories[cat_id]}\n")
+        for i, name in enumerate(category_names):
+            f.write(f"  {i}: {name}\n")
 
     logger.info(f"Configuration saved to {yaml_file_path}")
 
 
 def split_train_to_train_and_val(dst_path: str, train_ratio: float):
+    """
+    Moves a percentage of files from the 'train' directory to a new 'val'
+    directory for both images and labels.
+    """
     train_image_path = os.path.join(dst_path, "images", "train")
     val_image_path = os.path.join(dst_path, "images", "val")
     train_label_path = os.path.join(dst_path, "labels", "train")
     val_label_path = os.path.join(dst_path, "labels", "val")
-    os.makedirs(val_image_path)
-    os.makedirs(val_label_path)
+
+    # Ensure validation directories exist
+    os.makedirs(val_image_path, exist_ok=True)
+    os.makedirs(val_label_path, exist_ok=True)
+
+    # Get all image files (symlinks or copies) from the training directory
     files = list(glob.glob(os.path.join(train_image_path, "*")))
-    for file in files[int(len(files) * train_ratio):]:
-        image_file = os.path.basename(file)
+    if not files:
+        logger.warning("No files found in the training directory to split.")
+        return
+        
+    # Move a fraction of the files to the validation set
+    for file_path in files[int(len(files) * train_ratio):]:
+        image_file = os.path.basename(file_path)
         label_file = os.path.splitext(image_file)[0] + ".txt"
-        os.rename(os.path.join(train_image_path, image_file), os.path.join(val_image_path, image_file))
-        os.rename(os.path.join(train_label_path, label_file), os.path.join(val_label_path, label_file))
+
+        src_image = os.path.join(train_image_path, image_file)
+        dst_image = os.path.join(val_image_path, image_file)
+        src_label = os.path.join(train_label_path, label_file)
+        dst_label = os.path.join(val_label_path, label_file)
+        
+        # Move the image and its corresponding label file
+        if os.path.exists(src_image):
+            os.rename(src_image, dst_image)
+        if os.path.exists(src_label):
+            os.rename(src_label, dst_label)
 
 
 def main(src_path: str, dst_path: str, force_remove: bool = False):
     "Program's entrypoint."
     # Pre-checks.
-    if (not src_path) or (not dst_path):
+    if not src_path or not dst_path:
         logger.error("Source or destination folder is empty.")
         sys.exit(1)
 
@@ -159,9 +184,10 @@ def main(src_path: str, dst_path: str, force_remove: bool = False):
 
     if os.path.exists(dst_path):
         if force_remove:
+            logger.warning(f"Destination folder {dst_path} exists. Removing it.")
             rmtree(dst_path)
         else:
-            logger.info(f"Destination folder {dst_path} already exists.")
+            logger.info(f"Destination folder {dst_path} already exists. Exiting.")
             return
 
     src_annotations_path = os.path.join(src_path, "annotations")
@@ -173,17 +199,16 @@ def main(src_path: str, dst_path: str, force_remove: bool = False):
     # Conversion to Ultralytics' format.
     prepare_annotations(src_annotations_path, dst_path)
     categories = prepare_images(src_annotations_path, src_images_path, dst_path)
-    if len(categories) == 0:
-        logger.warning("No detection categories (classes) could be loaded \
-                       from the annotation files.")
+    if not categories:
+        logger.error("No detection categories (classes) could be loaded from the annotation files. Cannot proceed.")
+        sys.exit(1)
 
     # Generate validation dataset if val.json does not exist.
     if not os.path.exists(os.path.join(src_annotations_path, "val.json")):
-        logger.info("Generate validation dataset from train dataset")
+        logger.info("val.json not found. Generating validation set from the training set.")
         split_train_to_train_and_val(dst_path, TRAIN_SPLIT)
 
     prepare_configuration_file(categories, dst_path)
-
 
 
 if __name__ == "__main__":
